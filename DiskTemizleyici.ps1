@@ -737,6 +737,9 @@ function Remove-Aday($a, [bool]$geriDonusum) {
 
 function Invoke-Menu {
     $liste = @($script:Adaylar | Sort-Object Bayt -Descending)
+    # Temizlenen miktarlar: her işlem ayrı, bir de program açık kaldığı sürece tüm işlemlerin toplamı
+    $script:Islemler = New-Object System.Collections.Generic.List[object]
+    $script:ToplamTemizlenen = 0L; $script:ToplamDiskteAcilan = 0L
     while ($liste.Count -gt 0) {
         Show-Liste $liste
         Write-Host ''
@@ -771,16 +774,43 @@ function Invoke-Menu {
         if ($onay.ToUpperInvariant() -ne 'EVET') { Write-Host 'Onay verilmedi, hiçbir şey silinmedi.' -ForegroundColor Yellow; continue }
 
         $bosOnce = (Get-PSDrive C).Free
+        $buIslem = 0L
         foreach ($a in $secilen) {
             Write-Host "Siliniyor: $($a.Ad)..." -NoNewline
-            if (Remove-Aday $a $geri) { Write-Host ' TAMAM' -ForegroundColor Green }
-            else { Write-Host ' KISMEN (bazı dosyalar kilitli olabilir; programı kapatıp ya da yönetici olarak tekrar dene)' -ForegroundColor Yellow }
+            $tamam = Remove-Aday $a $geri
+            $kalan = Get-Boyut $a.Yollar -Taze
+            foreach ($y in $a.Yollar) { [void]$script:BoyutHafiza.Remove($y) }   # silinen yolun boyutu önbellekte kalmasın
+            $temizlenen = [long][math]::Max(0, $a.Bayt - $kalan)
+            $buIslem += $temizlenen
+            if ($tamam) { Write-Host (' TAMAM ({0})' -f (Format-Boyut $temizlenen)) -ForegroundColor Green }
+            else { Write-Host (' KISMEN ({0} temizlendi; bazı dosyalar kilitli olabilir, programı kapatıp ya da yönetici olarak tekrar dene)' -f (Format-Boyut $temizlenen)) -ForegroundColor Yellow }
         }
-        $fark = (Get-PSDrive C).Free - $bosOnce
-        Write-Host ("C: sürücüsünde açılan yer: {0}" -f (Format-Boyut ([long][math]::Max(0, $fark)))) -ForegroundColor Cyan
+        $fark = [long][math]::Max(0, (Get-PSDrive C).Free - $bosOnce)
+        $script:ToplamTemizlenen += $buIslem; $script:ToplamDiskteAcilan += $fark
+        $script:Islemler.Add([pscustomobject]@{ No = $script:Islemler.Count + 1; Oge = $secilen.Count; Temizlenen = $buIslem; Yontem = $(if ($geri) { 'Geri Dönüşüm' } else { 'Kalıcı' }) })
+        Write-Host ''
+        Write-Host ("Bu işlemde temizlenen    : {0}  ({1} öğe, {2})" -f (Format-Boyut $buIslem), $secilen.Count, $script:Islemler[-1].Yontem) -ForegroundColor Cyan
+        Write-Host ("Tüm işlemlerde temizlenen: {0}  ({1} işlem)" -f (Format-Boyut $script:ToplamTemizlenen), $script:Islemler.Count) -ForegroundColor Cyan
+        Write-Host ("C: sürücüsünde açılan yer: bu işlemde {0}, toplam {1}" -f (Format-Boyut $fark), (Format-Boyut $script:ToplamDiskteAcilan)) -ForegroundColor DarkCyan
+        if ($geri) { Write-Host '  Geri Dönüşüm Kutusu boşaltılana kadar diskte yer açılmaz.' -ForegroundColor DarkGray }
         $liste = @($liste | Where-Object { $secilen -notcontains $_ })
     }
+    Show-IslemOzeti
     Write-Host 'Çıkılıyor.'
+}
+
+function Show-IslemOzeti {
+    if (-not $script:Islemler -or $script:Islemler.Count -eq 0) { Write-Host 'Hiçbir şey silinmedi.' -ForegroundColor DarkGray; return }
+    Write-Host ''
+    Write-Host ('=' * 60) -ForegroundColor DarkGray
+    Write-Host ' İŞLEM ÖZETİ' -ForegroundColor White
+    Write-Host ('=' * 60) -ForegroundColor DarkGray
+    foreach ($i in $script:Islemler) {
+        Write-Host ('  {0}. işlem: {1,9}  ({2} öğe, {3})' -f $i.No, (Format-Boyut $i.Temizlenen), $i.Oge, $i.Yontem)
+    }
+    Write-Host ('-' * 60) -ForegroundColor DarkGray
+    Write-Host ('  Tüm işlemlerde temizlenen: {0}' -f (Format-Boyut $script:ToplamTemizlenen)) -ForegroundColor Cyan
+    Write-Host ('  C: sürücüsünde açılan yer: {0}' -f (Format-Boyut $script:ToplamDiskteAcilan)) -ForegroundColor DarkCyan
 }
 
 function Start-Temizleyici {

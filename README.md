@@ -88,9 +88,9 @@ Bu araç bunları bir arada bulur. Ama "temizleyici" programların en büyük ri
 - ♻️ **İki silme yöntemi:** Geri Dönüşüm Kutusu (geri alınabilir) veya kalıcı silme
 - 🛡️ **Koda gömülü koruma:** winget programları, Windows Installer önbelleği, WindowsApps ve benzerleri asla silinmez
 - ⚡ **Hızlı ölçüm:** Klasör boyutları .NET ile ölçülür; PowerShell'in `Get-ChildItem` komutundan 2-3 kat hızlı ve aynı sonucu verir
-- 📏 **Açılan yer raporu:** Her turdan sonra C: sürücüsünde ne kadar yer açıldığı gösterilir
+- 📏 **Temizlenen miktar:** Her öğe ve her işlem için ne kadar temizlendiği, ayrıca tüm işlemlerin toplamı ve C: sürücüsünde açılan yer gösterilir. Çıkışta işlem özeti yazdırılır
 - 📄 **CSV rapor:** Bütün tarama sonuçları Excel'de açılabilecek iki dosyaya kaydedilebilir
-- 🧪 **Testli:** Seçim, onay, koruma, eşleştirme ve sürüm karşılaştırma mantığı 33 otomatik testle doğrulanır
+- 🧪 **Testli:** Seçim, onay, koruma, eşleştirme ve sürüm karşılaştırma mantığı 36 otomatik testle doğrulanır
 - 📦 **Bağımlılık yok:** Windows'ta yerleşik gelen PowerShell 5.1 ile çalışır, kurulum gerektirmez
 
 ## Gereksinimler
@@ -399,7 +399,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\Test-DiskTemizleyici.ps1
 | Korumalı yollar | WinGet ve Windows korunuyor mu? Benzer adlı klasör yanlışlıkla korunuyor mu? Korumalı yol listeye eklenebiliyor mu? |
 | Onay akışı | "hayır" cevabı, geçersiz yöntem ve geçersiz seçim hiçbir şey sildirmiyor mu? |
 | Silme | `g` sadece GÜVENLİ öğeleri mi siliyor? Numara seçimi sadece o öğeyi mi siliyor? Geri Dönüşüm Kutusu çalışıyor mu? |
-| Çoklu tur | Silinen öğe listeden çıkıyor mu? İkinci turdaki numaralar doğru öğeyi mi gösteriyor? |
+| Çoklu tur | Silinen öğe listeden çıkıyor mu? İkinci turdaki numaralar doğru öğeyi mi gösteriyor? Temizlenen miktar her işlem için ayrı ve toplamda doğru mu? |
 | Eklenti sürümleri | En yeni sürüm korunuyor mu? Sürümler sayısal mı karşılaştırılıyor? Farklı platformlar ayrı mı sayılıyor? |
 | Android imajları | Emülatör yokken tüm imajlar, emülatör varken sadece kullanılmayanlar mı bulunuyor? |
 | Program eşleştirme | Birebir ve kısmi eşleşme, 3 harfli adların sadece birebir eşleşmesi, kayıt defteri önceliği, program alt klasörlerinin ("help" gibi) sadece birebir eşleşmesi, tanınmayan klasör, Türkçe karakter sadeleştirme |
@@ -410,7 +410,7 @@ Beklenen çıktının sonu:
 
 ```text
 GECTI  Bilgi öğesi silme listesine eklenmez
-Toplam: 33/33
+Toplam: 36/36
 ```
 
 Herhangi bir test başarısız olursa betik `1` çıkış koduyla biter, böylece CI'da da kullanılabilir.

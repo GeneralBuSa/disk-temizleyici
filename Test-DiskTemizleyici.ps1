@@ -41,6 +41,10 @@ Hazirla; Cevaplar @('1', '2', 'evet');  Invoke-Menu *> $null; Kontrol '1 -> sade
 Hazirla; Cevaplar @('2', '1', 'EVET');  Invoke-Menu *> $null; Kontrol '2 + Geri Dönüşüm -> sadece B kaldırıldı' ((Var a) -and (-not (Var b)) -and (Var c))
 Hazirla; Cevaplar @('1', '2', 'EVET', '1', '2', 'EVET'); Invoke-Menu *> $null
 Kontrol 'Silinen listeden çıkar, ikinci turda yeni 1 (B) silinir' ((Var a) -and (-not (Var b)) -and (-not (Var c)))
+Kontrol 'Temizlenen: her işlem ayrı sayılır (3 MB, 2 MB)' (($script:Islemler.Count -eq 2) -and ($script:Islemler[0].Temizlenen -eq 3MB) -and ($script:Islemler[1].Temizlenen -eq 2MB))
+Kontrol 'Temizlenen: tüm işlemlerin toplamı 5 MB' ($script:ToplamTemizlenen -eq 5MB)
+Hazirla; Cevaplar @('1', '2', 'hayir'); Invoke-Menu *> $null
+Kontrol 'Temizlenen: onay verilmezse işlem sayılmaz' (($script:Islemler.Count -eq 0) -and ($script:ToplamTemizlenen -eq 0))
 
 # --- Eski eklenti sürümleri
 $eski = Get-EskiSurumler @('ms-python.python-2026.4.0-universal', 'ms-python.python-2026.2.0-universal',
