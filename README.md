@@ -6,6 +6,7 @@ Bilgisayarındaki gereksiz önbellekleri, eski sürüm dosyalarını ve kaldır�
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6)
 ![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-5391FE)
 ![Bağımlılık](https://img.shields.io/badge/bağımlılık-yok-brightgreen)
+![Lisans](https://img.shields.io/badge/lisans-MIT-blue)
 
 ---
 
@@ -34,6 +35,7 @@ Bilgisayarındaki gereksiz önbellekleri, eski sürüm dosyalarını ve kaldır�
 - [Proje yapısı](#proje-yapısı)
 - [Katkıda bulunma](#katkıda-bulunma)
 - [Sorumluluk reddi](#sorumluluk-reddi)
+- [Lisans](#lisans)
 
 ---
 
@@ -83,7 +85,7 @@ Bu araç bunları bir arada bulur. Ama "temizleyici" programların en büyük ri
 **Git ile:**
 
 ```bash
-git clone https://github.com/KULLANICI_ADIN/disk-temizleyici.git
+git clone https://github.com/GeneralBuSa/disk-temizleyici.git
 cd disk-temizleyici
 ```
 
@@ -494,6 +496,7 @@ disk-temizleyici/
 ├── DiskTemizleyici.bat        # Çift tıklayarak başlatmak için
 ├── Test-DiskTemizleyici.ps1   # Otomatik testler (sahte klasörlerle)
 ├── README.md                  # Bu dosya
+├── LICENSE                    # MIT lisansı
 └── .gitattributes             # Windows satır sonlarını korur
 ```
 
@@ -532,3 +535,7 @@ Pull request göndermeden önce:
 ## Sorumluluk reddi
 
 Bu araç, bilgisayarındaki dosyaları **senin onayınla** siler. Her öğe için açıklama ve risk etiketi sunulsa da hangi dosyanın gerçekten gereksiz olduğuna dair son karar sana aittir. Önemli verilerinin yedeğini almanı, emin olmadığın öğelerde **Geri Dönüşüm Kutusu** seçeneğini kullanmanı öneririz. Yazılım "olduğu gibi" sunulmaktadır ve kullanımından doğabilecek veri kayıplarından geliştiriciler sorumlu tutulamaz.
+
+## Lisans
+
+[MIT](LICENSE) © 2026 GeneralBuSa
