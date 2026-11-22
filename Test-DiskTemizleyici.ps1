@@ -73,6 +73,18 @@ Kontrol 'Eşleşme: Türkçe karakter sadeleşir' ((Norm 'FMU Editör') -eq 'fmu
 $idx2 = [ordered]@{ 'microsoftvisualstudiocodeuser' = 'Microsoft Visual Studio Code (User)'; 'visualstudiocode' = 'VS Code (Store)'; 'mcpserver' = 'MCP Server' }
 Kontrol 'Eşleşme: 3 harfli ad sadece birebir eşleşir (mcp)' ($null -eq (Find-Eslesme 'mcp' $idx2))
 Kontrol 'Eşleşme: kısmi eşleşmede ilk eklenen (kayıt defteri) öncelikli' ((Find-Eslesme 'Code' $idx2) -eq 'Microsoft Visual Studio Code (User)')
+$idx3 = [ordered]@{ 'ciscopackettracer' = 'Cisco Packet Tracer'; 'help' = 'Cisco Packet Tracer\help (program klasörü)'; 'eaapp' = 'EA app' }
+$script:SadeceBirebir.Clear(); $script:SadeceBirebir.Add('help') | Out-Null
+Kontrol 'Eşleşme: program alt klasörü (help) kısmi eşleşmez' ($null -eq (Find-Eslesme 'EALaunchHelper' $idx3))
+Kontrol 'Eşleşme: program alt klasörü birebir eşleşir' ((Find-Eslesme 'help' $idx3) -like 'Cisco*')
+$script:SadeceBirebir.Clear()
+
+# --- İç içe yollar çift sayılmaz
+Hazirla; Add-Aday 'A içi' @("$T\a") 'GUVENLI' 'Test' 'x'
+New-Item -ItemType Directory "$T\b\Cache" -Force | Out-Null; [IO.File]::WriteAllBytes("$T\b\Cache\v.bin", (New-Object byte[] 1MB))
+Add-Aday 'B önbelleği' @("$T\b\Cache") 'GUVENLI' 'Test' 'x'
+Kontrol 'Listedeki klasörün alt klasörü ayrıca eklenmez' ($script:Adaylar.Count -eq 3)
+Remove-Item "$T\b\Cache" -Recurse -Force
 
 # --- Etiketler: DOKUNMA öğeleri silme listesine girmez
 $script:Adaylar.Clear(); $script:Bilgiler.Clear()

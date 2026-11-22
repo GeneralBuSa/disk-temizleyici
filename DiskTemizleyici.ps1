@@ -162,7 +162,11 @@ function Add-Aday {
     $Yollar = @($Yollar | Where-Object { $_ -and (Test-Path -LiteralPath $_) })
     if ($Yollar.Count -eq 0) { return }
     foreach ($y in $Yollar) { if (Test-Korumali $y) { Write-Verbose "Korumalı, atlandı: $y"; return } }
-    foreach ($a in $script:Adaylar) { foreach ($y in $Yollar) { if ($a.Yollar -contains $y) { return } } }  # aynı yol iki kez listelenmesin
+    # Aynı yol, ya da listedeki bir yolun içindeki/üstündeki yol iki kez listelenmesin (toplam çift sayılmasın)
+    foreach ($a in $script:Adaylar) { foreach ($v in $a.Yollar) { foreach ($y in $Yollar) {
+        $v2 = $v.TrimEnd('\') + '\'; $y2 = $y.TrimEnd('\') + '\'
+        if ($y2.StartsWith($v2, [StringComparison]::OrdinalIgnoreCase) -or $v2.StartsWith($y2, [StringComparison]::OrdinalIgnoreCase)) { return }
+    } } }
     $bayt = Get-Boyut $Yollar
     if ($Komut -and $bayt -lt 1MB) { return }                 # zaten temiz önbellekleri gösterme
     if ($bayt -eq 0 -and $Kategori -eq 'Önbellek') { return } # boş önbellekleri gösterme
@@ -416,10 +420,16 @@ function Get-SteamKutuphaneleri {
 }
 
 # ================================================================ 2) kurulu programlar ve AppData envanteri
+# Kısmi eşleşmede kullanılmayacak anahtarlar (program klasörlerinin alt klasör adları)
+$script:SadeceBirebir = New-Object 'System.Collections.Generic.HashSet[string]'
+
 function Get-KuruluIndeks {
     # normalleştirilmiş ad -> gösterilecek program adı. Sıralı: önce kayıt defteri, sonra klasörler, Store, oyunlar.
     # Böylece kısmi eşleşmede kayıt defterindeki gerçek program adı öncelik alır.
     $t = [ordered]@{}
+    $script:SadeceBirebir.Clear()
+    # Genel adlar sadece birebir eşleşebilsin diye işaretlenerek eklenir
+    $birebir = { param($s, $goster) $n = Norm $s; if ($n.Length -ge 3 -and -not $t.Contains($n)) { $script:SadeceBirebir.Add($n) | Out-Null; $t[$n] = $goster } }
     $ekle = { param($s, $goster) $n = Norm $s; if ($n.Length -ge 3 -and -not $t.Contains($n)) { $t[$n] = $(if ($goster) { $goster } else { $s }) } }
     $keys = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*',
             'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*',
@@ -430,19 +440,24 @@ function Get-KuruluIndeks {
         $adlar[$dn.Value] = $true
         & $ekle $dn.Value $dn.Value
         $p = $k.PSObject.Properties['Publisher']; if ($p -and $p.Value) { & $ekle $p.Value "$($dn.Value) ($($p.Value))" }
-        $p = $k.PSObject.Properties['InstallLocation']; if ($p -and $p.Value) { & $ekle (Split-Path $p.Value.TrimEnd('\') -Leaf) $dn.Value }
+        $p = $k.PSObject.Properties['InstallLocation']; if ($p -and $p.Value) { & $birebir (Split-Path $p.Value.TrimEnd('\') -Leaf) $dn.Value }   # "Launcher" gibi genel klasör adları
     }
     $script:Istatistik.Kayit = $adlar.Count
     foreach ($d in "$env:ProgramFiles", "${env:ProgramFiles(x86)}", "$L\Programs") {
         Get-ChildItem $d -Directory -ErrorAction SilentlyContinue | ForEach-Object {
             $ust = $_.Name
             & $ekle $ust "$ust (program klasörü)"
-            Get-ChildItem $_.FullName -Directory -ErrorAction SilentlyContinue | ForEach-Object { & $ekle $_.Name "$ust\$($_.Name) (program klasörü)" }
+            # Alt klasörler ("help", "plugins", "host", "launcher" gibi genel adlar) sadece birebir eşleşebilir
+            Get-ChildItem $_.FullName -Directory -ErrorAction SilentlyContinue | ForEach-Object {
+                $n = Norm $_.Name
+                if ($n.Length -ge 3 -and -not $t.Contains($n)) { $script:SadeceBirebir.Add($n) | Out-Null }
+                & $ekle $_.Name "$ust\$($_.Name) (program klasörü)"
+            }
         }
     }
     $appx = @(Get-AppxPackage -ErrorAction SilentlyContinue)
     $script:Istatistik.Store = @($appx | Where-Object { $_.SignatureKind -eq 'Store' }).Count
-    foreach ($a in $appx) { & $ekle $a.Name "$($a.Name) (Store)"; $a.Name -split '\.' | ForEach-Object { & $ekle $_ "$($a.Name) (Store)" } }
+    foreach ($a in $appx) { & $ekle $a.Name "$($a.Name) (Store)"; $a.Name -split '\.' | ForEach-Object { & $birebir $_ "$($a.Name) (Store)" } }   # "Native", "Runtime" gibi parçalar
     $steamOyun = 0
     foreach ($k in (Get-SteamKutuphaneleri)) {
         Get-ChildItem "$k\steamapps\common" -Directory -ErrorAction SilentlyContinue | ForEach-Object { $steamOyun++; & $ekle $_.Name "$($_.Name) (Steam)" }
@@ -464,6 +479,7 @@ function Find-Eslesme([string]$ad, $idx) {
     if ($idx.Contains($n)) { return $idx[$n] }
     if ($n.Length -lt 4) { return $null }   # 3 harfli adlarda sadece birebir eşleşme (yanlış eşleşmeyi önler)
     foreach ($k in $idx.Keys) {
+        if ($script:SadeceBirebir.Contains($k)) { continue }
         if ($k.Contains($n) -or ($k.Length -ge 4 -and $n.Contains($k))) { return $idx[$k] }
     }
     return $null
@@ -509,6 +525,7 @@ $script:KlasorAciklamalari = @{
 $script:TakmaAdlar = @{
     'TS4' = 'thesims4'; 'LGLData' = 'logitech'; 'FMUAsistan' = 'thefmu'
     'EADesktop' = 'eaapp'; 'Link2EA' = 'eaapp'; 'EALaunchHelper' = 'eaapp'
+    'UnrealEngineLauncher' = 'epicgames'; 'FabPlugins' = 'epicgames'; 'Claude-NativeHost' = 'claude'; 'cursor-compile-cache' = 'cursor'
 }
 # Klasör adı -> varlığını kontrol edeceğimiz komut (geliştirici araçları)
 $script:AracKlasorleri = @{
