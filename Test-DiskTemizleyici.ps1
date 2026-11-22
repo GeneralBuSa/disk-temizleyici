@@ -42,6 +42,44 @@ Hazirla; Cevaplar @('2', '1', 'EVET');  Invoke-Menu *> $null; Kontrol '2 + Geri 
 Hazirla; Cevaplar @('1', '2', 'EVET', '1', '2', 'EVET'); Invoke-Menu *> $null
 Kontrol 'Silinen listeden çıkar, ikinci turda yeni 1 (B) silinir' ((Var a) -and (-not (Var b)) -and (-not (Var c)))
 
+# --- Eski eklenti sürümleri
+$eski = Get-EskiSurumler @('ms-python.python-2026.4.0-universal', 'ms-python.python-2026.2.0-universal',
+                            'ms-python.python-2025.12.1-universal', 'golang.go-0.52.2-universal',
+                            'meta.pyrefly-1.0.0-win32-x64', 'meta.pyrefly-1.0.0-linux-x64', 'bozukad')
+$eskiAd = @($eski | ForEach-Object Ad | Sort-Object)
+Kontrol 'Eklenti: aynı eklentinin 2 eski sürümü bulunur' ($eskiAd.Count -eq 2)
+Kontrol 'Eklenti: en yeni sürüm (2026.4.0) eski sayılmaz' ($eskiAd -notcontains 'ms-python.python-2026.4.0-universal')
+Kontrol 'Eklenti: 2025.12.1 < 2026.2.0 sayısal karşılaştırılır' ($eskiAd -contains 'ms-python.python-2025.12.1-universal')
+Kontrol 'Eklenti: farklı platformlar ayrı sayılır' ($eskiAd -notcontains 'meta.pyrefly-1.0.0-win32-x64')
+Kontrol 'Eklenti: tek sürümlü eklenti eski sayılmaz' ($eskiAd -notcontains 'golang.go-0.52.2-universal')
+
+# --- Kullanılmayan Android sistem imajları
+$sdk = "$T\sdk"; $avd = "$T\avd"
+foreach ($i in 'android-33\google_apis_playstore\x86_64', 'android-36.1\google_apis_playstore\x86_64') { New-Item -ItemType Directory "$sdk\system-images\$i" -Force | Out-Null }
+New-Item -ItemType Directory "$avd" -Force | Out-Null
+$bos = Get-KullanilmayanImajlar $sdk $avd
+Kontrol 'Android: hiç emülatör yoksa tüm imajlar kullanılmıyor' ($bos.Count -eq 2)
+New-Item -ItemType Directory "$avd\Telefon.avd" -Force | Out-Null
+Set-Content "$avd\Telefon.avd\config.ini" "hw.ramSize=2048`r`nimage.sysdir.1=system-images/android-33/google_apis_playstore/x86_64/"
+$bos = Get-KullanilmayanImajlar $sdk $avd
+Kontrol 'Android: emülatörün kullandığı imaj listelenmez' (($bos.Count -eq 1) -and ($bos[0] -like '*android-36.1*'))
+
+# --- Program eşleştirme
+$idx = @{ 'discord' = 'Discord'; 'thesims4' = 'The Sims 4 (Steam)'; 'riotgamesinc' = 'VALORANT (Riot Games, Inc)' }
+Kontrol 'Eşleşme: birebir ad' ((Find-Eslesme 'Discord' $idx) -eq 'Discord')
+Kontrol 'Eşleşme: ad, yayıncının içinde geçiyor' ((Find-Eslesme 'Riot Games' $idx) -like 'VALORANT*')
+Kontrol 'Eşleşme: tanınmayan klasör $null döner' ($null -eq (Find-Eslesme 'EA SPORTS FC 26' $idx))
+Kontrol 'Eşleşme: Türkçe karakter sadeleşir' ((Norm 'FMU Editör') -eq 'fmueditor')
+$idx2 = [ordered]@{ 'microsoftvisualstudiocodeuser' = 'Microsoft Visual Studio Code (User)'; 'visualstudiocode' = 'VS Code (Store)'; 'mcpserver' = 'MCP Server' }
+Kontrol 'Eşleşme: 3 harfli ad sadece birebir eşleşir (mcp)' ($null -eq (Find-Eslesme 'mcp' $idx2))
+Kontrol 'Eşleşme: kısmi eşleşmede ilk eklenen (kayıt defteri) öncelikli' ((Find-Eslesme 'Code' $idx2) -eq 'Microsoft Visual Studio Code (User)')
+
+# --- Etiketler: DOKUNMA öğeleri silme listesine girmez
+$script:Adaylar.Clear(); $script:Bilgiler.Clear()
+Add-Bilgi 'Deneme' 10MB 'açıklama'
+Kontrol 'Bilgi öğesi varsayılan etiketi DOKUNMA' ($script:Bilgiler[0].Etiket -eq 'DOKUNMA')
+Kontrol 'Bilgi öğesi silme listesine eklenmez' ($script:Adaylar.Count -eq 0)
+
 Remove-Item $T -Recurse -Force -ErrorAction SilentlyContinue
 $script:sonuc
 $gecen = @($script:sonuc | Where-Object { $_ -like 'GECTI*' }).Count
